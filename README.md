@@ -1,7 +1,7 @@
 Laptop
 ======
 
-Laptop is a script to set up a macOS laptop for web and mobile development.
+Laptop is a script to set up a macOS laptop for web development.
 
 It can be run multiple times on the same machine safely.
 It installs, upgrades, or skips packages
@@ -24,7 +24,7 @@ Install
 Download the script:
 
 ```sh
-curl --remote-name https://raw.githubusercontent.com/thoughtbot/laptop/main/mac
+curl --remote-name https://raw.githubusercontent.com/eduardofavarato/laptop/main/mac
 ```
 
 Review the script (avoid running scripts you haven't read!):
@@ -45,88 +45,48 @@ Optionally, review the log:
 less ~/laptop.log
 ```
 
-Optionally, [install thoughtbot/dotfiles][dotfiles].
-
-[dotfiles]: https://github.com/thoughtbot/dotfiles#install
-
-Debugging
----------
-
-Your last Laptop run will be saved to `~/laptop.log`.
-Read through it to see if you can debug the issue yourself.
-If not, copy the lines where the script failed into a
-[new GitHub Issue](https://github.com/thoughtbot/laptop/issues/new) for us.
-Or, attach the whole log file as an attachment.
-
 What it sets up
 ---------------
 
-macOS tools:
+### macOS tools:
 
-* [Homebrew] for managing operating system libraries.
+* [Apple's Command Line Developer Tools](https://developer.apple.com/) to enable developer functionality on our macOS system.
 
-[Homebrew]: http://brew.sh/
+### Command line tools:
 
-Unix tools:
+* [Homebrew](http://brew.sh/) for managing operating system libraries.
+* [Git](https://git-scm.com/) for version control
+* [Github CLI](https://cli.github.com/) for using GitHub in your terminal
+* [Zsh](http://www.zsh.org/) as your command line shell
+* [Oh My Zsh](https://github.com/robbyrussell/oh-my-zsh) to add nice features to zsh - autocompletions, shortcuts etc.
+* [tree](https://linux.die.net/man/1/tree) for visualising directory structure from the Terminal
+* [OpenSSL](https://www.openssl.org/) for Transport Layer Security (TLS)
+* [Mas-CLI](https://github.com/mas-cli/mas) as your CLI for the Mac App Store
 
-* [Universal Ctags] for indexing files for vim tab completion
-* [Git] for version control
-* [OpenSSL] for Transport Layer Security (TLS)
-* [RCM] for managing company and personal dotfiles
-* [The Silver Searcher] for finding things in files
-* [Tmux] for saving project state and switching between projects
-* [Watchman] for watching for filesystem events
-* [Zsh] as your shell
+### Programming languages and configuration:
 
-[Universal Ctags]: https://ctags.io/
-[Git]: https://git-scm.com/
-[OpenSSL]: https://www.openssl.org/
-[RCM]: https://github.com/thoughtbot/rcm
-[The Silver Searcher]: https://github.com/ggreer/the_silver_searcher
-[Tmux]: http://tmux.github.io/
-[Watchman]: https://facebook.github.io/watchman/
-[Zsh]: http://www.zsh.org/
+* [Node.js](http://nodejs.org/) for JavaScript back-end development, and
+* [NPM](https://www.npmjs.org/) for installing JavaScript packages
+* [Yarn](https://yarnpkg.com/en/) for managing JavaScript packages
+* [nvm](https://github.com/nvm-sh/nvm) for managing node versions
 
-Heroku tools:
+### Devops:
 
-* [Heroku CLI] and [Parity] for interacting with the Heroku API
+* [Docker](https://www.docker.com/) for building, sharing, and running modern applications
+* [awscli](https://aws.amazon.com/pt/cli/) for managing AWS services
 
-[Heroku CLI]: https://devcenter.heroku.com/articles/heroku-cli
-[Parity]: https://github.com/thoughtbot/parity
+### Databases:
 
-GitHub tools:
+* [PostgreSQL](http://www.postgresql.org/) for storing relational data
 
-* [GitHub CLI] for interacting with the GitHub API
+### GUI Apps:
 
-[GitHub CLI]: https://cli.github.com/
-
-Image tools:
-
-* [ImageMagick] for cropping and resizing images
-
-Programming languages, package managers, and configuration:
-
-* [asdf-vm] for managing programming language versions
-* [Bundler] for managing Ruby libraries
-* [Node.js] and [npm], for running apps and installing JavaScript packages
-* [Ruby] stable for writing general-purpose code
-* [Yarn] for managing JavaScript packages
-
-[Bundler]: http://bundler.io/
-[ImageMagick]: http://www.imagemagick.org/
-[Node.js]: http://nodejs.org/
-[npm]: https://www.npmjs.org/
-[asdf-vm]: https://github.com/asdf-vm/asdf
-[Ruby]: https://www.ruby-lang.org/en/
-[Yarn]: https://yarnpkg.com/en/
-
-Databases:
-
-* [Postgres] for storing relational data
-* [Redis] for storing key-value data
-
-[Postgres]: http://www.postgresql.org/
-[Redis]: http://redis.io/
+* [Google Chrome](https://www.google.com/chrome/) for web browsing and development
+* [VS Code](https://code.visualstudio.com/) for text editing
+* [JetBrains Toolbox](https://www.jetbrains.com/toolbox-app/) for managing JetBrains tools the easy way
+* [Slack](https://slack.com) for team chat
+* [iTerm2](https://iterm2.com/) for terminal
+* [Insomnia](https://insomnia.rest/) for collaborative API development 
 
 It should take less than 15 minutes to install (depends on your machine).
 
@@ -180,43 +140,8 @@ Laptop functions such as `fancy_echo` and
 `gem_install_or_update`
 can be used in your `~/.laptop.local`.
 
-See the [wiki](https://github.com/thoughtbot/laptop/wiki)
+See this [wiki](https://github.com/thoughtbot/laptop/wiki)
 for more customization examples.
-
-Contributing
-------------
-
-Thank you, [contributors]!
-
-[contributors]: https://github.com/thoughtbot/laptop/graphs/contributors
-
-By participating in this project,
-you agree to abide by the thoughtbot [code of conduct].
-
-[code of conduct]: https://thoughtbot.com/open-source-code-of-conduct
-
-Edit the `mac` file.
-Document in the `README.md` file.
-Update the `CHANGELOG`.
-Follow shell style guidelines by using [ShellCheck] and [Syntastic].
-
-```sh
-brew install shellcheck
-```
-
-[ShellCheck]: http://www.shellcheck.net/about.html
-[Syntastic]: https://github.com/scrooloose/syntastic
-
-### Testing your changes
-
-Test your changes by running the script on a fresh install of macOS.
-You can use the free and open source emulator [UTM].
-
-Tip: Make a fresh virtual machine with the installation of macOS completed and
-your user created and first launch complete. Then duplicate that machine to test
-the script each time on a fresh install thats ready to go.
-
-[UTM]: https://mac.getutm.app
 
 License
 -------

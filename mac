@@ -1,16 +1,45 @@
-#!/bin/sh
+#!/bin/bash
 
-# Welcome to the thoughtbot laptop script!
+# Welcome to the Nimble laptop script!
 # Be prepared to turn your laptop (or desktop, no haters here)
 # into an awesome development machine.
 
-# shellcheck disable=SC3043
+# shellcheck disable=SC2154
+trap 'ret=$?; test $ret -ne 0 && printf "failed\n\n" >&2; exit $ret' EXIT
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -e
 
 fancy_echo() {
   local fmt="$1"; shift
 
   # shellcheck disable=SC2059
-  printf "\\n$fmt\\n" "$@"
+  printf "\n$fmt\n" "$@"
+}
+
+pre_setup() {
+  if [ ! -d "$HOME/.bin/" ]; then
+    mkdir "$HOME/.bin"
+  fi
+
+  if [ ! -f "$HOME/.zshrc" ]; then
+    touch "$HOME/.zshrc"
+  fi
+
+  if [ ! -f "$HOME/.Brewfile" ]; then
+    touch "$HOME/.Brewfile"
+  fi
+
+  # shellcheck disable=SC2016
+  append_to_zshrc 'export PATH="$HOME/.bin:$PATH"'
+
+  # Determine Homebrew prefix
+  ARCH="$(uname -m)"
+  if [ "$ARCH" = "arm64" ]; then
+    HOMEBREW_PREFIX="/opt/homebrew"
+  else
+    HOMEBREW_PREFIX="/usr/local"
+  fi
 }
 
 append_to_zshrc() {
@@ -25,59 +54,61 @@ append_to_zshrc() {
 
   if ! grep -Fqs "$text" "$zshrc"; then
     if [ "$skip_new_line" -eq 1 ]; then
-      printf "%s\\n" "$text" >> "$zshrc"
+      printf "%s\n" "$text" >> "$zshrc"
     else
-      printf "\\n%s\\n" "$text" >> "$zshrc"
+      printf "\n%s\n" "$text" >> "$zshrc"
     fi
   fi
 }
 
-# shellcheck disable=SC2154
-trap 'ret=$?; test $ret -ne 0 && printf "failed\n\n" >&2; exit $ret' EXIT
+prepend_to_zshrc() {
+  local text="$1" zshrc
 
-set -e
-
-if [ ! -d "$HOME/.bin/" ]; then
-  mkdir "$HOME/.bin"
-fi
-
-if [ ! -f "$HOME/.zshrc" ]; then
-  touch "$HOME/.zshrc"
-fi
-
-# shellcheck disable=SC2016
-append_to_zshrc 'export PATH="$HOME/.bin:$PATH"'
-
-# Determine Homebrew prefix
-arch="$(uname -m)"
-if [ "$arch" = "arm64" ]; then
-  HOMEBREW_PREFIX="/opt/homebrew"
-else
-  HOMEBREW_PREFIX="/usr/local"
-fi
-
-update_shell() {
-  local shell_path;
-  shell_path="$(command -v zsh)"
-
-  fancy_echo "Changing your shell to zsh ..."
-  if ! grep "$shell_path" /etc/shells > /dev/null 2>&1 ; then
-    fancy_echo "Adding '$shell_path' to /etc/shells"
-    sudo sh -c "echo $shell_path >> /etc/shells"
+  if [ -w "$HOME/.zshrc.local" ]; then
+    zshrc="$HOME/.zshrc.local"
+  else
+    zshrc="$HOME/.zshrc"
   fi
-  sudo chsh -s "$shell_path" "$USER"
+
+  echo -e "$text\n\n$(cat $zshrc)" > $zshrc
 }
 
-case "$SHELL" in
-  */zsh)
-    if [ "$(command -v zsh)" != '/usr/local/bin/zsh' ] ; then
-      update_shell
+config_zsh() {
+  read -r -p "Do you want to install Zsh's extensions? [Y|n] " response
+
+  if [[ ! $response =~ (n|no|N) ]];then
+    sudo chsh -s $(which zsh)
+
+    fancy_echo "Installing Oh my Zsh"
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" "" --unattended
+
+    if [ ! -d ~/.zsh/zsh-defer ]; then
+      git clone https://github.com/romkatv/zsh-defer.git ~/.zsh/zsh-defer
+      prepend_to_zshrc 'source ~/.zsh/zsh-defer/zsh-defer.plugin.zsh'
     fi
-    ;;
-  *)
-    update_shell
-    ;;
-esac
+    if [ ! -d ~/.zsh/zsh-autosuggestions ]; then
+      git clone https://github.com/zsh-users/zsh-autosuggestions.git ~/.zsh/zsh-autosuggestions
+      prepend_to_zshrc 'source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh'
+    fi
+    if [ ! -d ~/.zsh/zsh-syntax-highlighting ]; then
+      git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.zsh/zsh-syntax-highlighting
+      prepend_to_zshrc 'source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh'
+    fi
+    if [ ! -d ~/.oh-my-zsh/custom/plugins/zsh-completions ]; then
+      git clone https://github.com/zsh-users/zsh-completions.git ~/.oh-my-zsh/custom/plugins/zsh-completions
+      prepend_to_zshrc 'fpath+=~/.oh-my-zsh/custom/plugins/zsh-completions/src'
+    fi
+
+    prepend_to_zshrc 'ZSH_DISABLE_COMPFIX=true'
+
+    # shellcheck disable=SC2016
+    append_to_zshrc 'export PATH="$HOME/.bin:$PATH"'
+
+    zsh_config_homebrew
+
+    fancy_echo "Configured Zsh"
+  fi
+}
 
 gem_install_or_update() {
   if gem list "$1" --installed > /dev/null; then
@@ -87,113 +118,172 @@ gem_install_or_update() {
   fi
 }
 
-if ! command -v brew >/dev/null; then
-  fancy_echo "Installing Homebrew ..."
-    /bin/bash -c \
-      "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+install_homebrew() {
+  if ! command -v brew >/dev/null; then
+    fancy_echo "Installing Homebrew ..."
+      /bin/bash -c \
+        "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-    append_to_zshrc "eval \"\$($HOMEBREW_PREFIX/bin/brew shellenv)\""
+      zsh_config_homebrew
 
-    export PATH="$HOMEBREW_PREFIX/bin:$PATH"
-fi
+      export PATH="$HOMEBREW_PREFIX/bin:$PATH"
+  fi
 
-if brew list | grep -Fq brew-cask; then
-  fancy_echo "Uninstalling old Homebrew-Cask ..."
-  brew uninstall --force brew-cask
-fi
+  if brew list | grep -Fq brew-cask; then
+    fancy_echo "Uninstalling old Homebrew-Cask ..."
+    brew uninstall --force brew-cask
+  fi
+}
 
-fancy_echo "Updating Homebrew formulae ..."
-brew update --force # https://github.com/Homebrew/brew/issues/1151
-brew bundle --file=- <<EOF
-tap "thoughtbot/formulae"
-tap "homebrew/services"
-tap "heroku/brew"
+zsh_config_homebrew() {
+  fancy_echo "Adding brew to zshrc automatically..."
+  append_to_zshrc "eval \"\$($HOMEBREW_PREFIX/bin/brew shellenv)\""
+}
 
-# Unix
-brew "universal-ctags"
-brew "git"
-brew "openssl"
-brew "rcm"
-brew "reattach-to-user-namespace"
-brew "the_silver_searcher"
-brew "tmux"
-brew "vim"
-brew "watchman"
-brew "zsh"
+setup_postgres() {
+  pg_ctl -D "$HOMEBREW_PREFIX/var/postgresql@15" start
+  "$HOMEBREW_PREFIX/opt/postgresql@15/bin/createuser" -s postgres
+  pg_ctl -D "$HOMEBREW_PREFIX/var/postgresql@15" stop
+}
 
-# Heroku
-brew "heroku/brew/heroku"
-brew "parity"
+append_general_dependencies() {
+  fancy_echo "Appending general dependencies to Brewfile"
 
-# GitHub
-brew "gh"
+  tee "$HOME/.Brewfile" <<-EOF
+    # General
+    tap "thoughtbot/formulae"
+    tap "homebrew/services"
+    tap "github/gh"
 
-# Image manipulation
-brew "imagemagick"
+    # mas-cli to install macOS apps
+    brew "mas"
 
-# PDF Rendering
-brew "poppler"
+    # General apps
+    cask "slack" unless File.directory?("/Applications/Slack.app")
+    cask "google-chrome" unless File.directory?("/Applications/Google Chrome.app")
+    cask "iterm2" unless File.directory?("/Applications/iTerm.app")
+    
+    #Developer apps
+    cask "visual-studio-code" unless File.directory?("/Applications/Visual Studio Code.app")
+    cask "insomnia" unless File.directory?("/Applications/Insomnia.app")
 
-# Programming language prerequisites and package managers
-brew "libyaml" # should come after openssl
-brew "coreutils"
-brew "yarn"
-cask "gpg-suite-no-mail"
+    # Unix
+    brew "git"
+    brew "openssl"
+    brew "zsh"
+    brew "tree"
 
-# Databases
-brew "postgresql@14", restart_service: :changed
-brew "redis", restart_service: :changed
+    # GitHub extensions
+    brew "gh"
+
+    # Programming language prerequisites and package managers
+    brew "libyaml" # should come after openssl
+    brew "coreutils"
 EOF
 
-fancy_echo "Update heroku binary ..."
-brew unlink heroku
-brew link --force heroku
+  if [ "$ARCH" != "arm64" ]; then
+    append_general_intel_dependencies
+  fi
+}
 
-fancy_echo "Configuring asdf version manager ..."
-if [ ! -d "$HOME/.asdf" ]; then
-  brew install asdf
-  append_to_zshrc "source $(brew --prefix asdf)/libexec/asdf.sh" 1
-fi
+append_general_intel_dependencies() {
+  fancy_echo "Appending web's dependencies to Brewfile"
 
-alias install_asdf_plugin=add_or_update_asdf_plugin
-add_or_update_asdf_plugin() {
-  local name="$1"
-  local url="$2"
+  tee -a "$HOME/.Brewfile" <<-EOF
+    # General apps
+    cask "keybase" unless File.directory?("/Applications/Keybase.app")
+EOF
+}
 
-  if ! asdf plugin-list | grep -Fq "$name"; then
-    asdf plugin-add "$name" "$url"
+append_web_dependencies() {
+  fancy_echo "Appending web's dependencies to Brewfile"
+
+  tee -a "$HOME/.Brewfile" <<-EOF
+    # Languages
+    brew "node"
+
+    # Devops
+    cask "docker"
+    brew "awscli"
+
+    # Databases
+    brew "postgresql@15", restart_service: true
+
+    # Others
+    brew "nvm"
+    brew "yarn"
+    cask "jetbrains-toolbox"
+EOF
+}
+
+install_dependencies() {
+  fancy_echo "Updating Homebrew formulae ..."
+  brew update --force # https://github.com/Homebrew/brew/issues/1151
+
+  fancy_echo "Installing dependencies"
+  brew bundle --global --verbose --no-upgrade
+
+  if [[ "$(which postgres)" =~ "postgres not found" ]]; then
+    setup_postgres
   else
-    asdf plugin-update "$name"
+    fancy_echo "postgres already installed, skipping setup"
+  fi
+
+  fancy_echo "Installed dependencies"
+}
+
+install_laptop_local() {
+  if [ -f "$HOME/.laptop.local" ]; then
+    fancy_echo "Running your customizations from ~/.laptop.local ..."
+    # shellcheck disable=SC1090
+    . "$HOME/.laptop.local"
   fi
 }
 
-# shellcheck disable=SC1091
-. "$(brew --prefix asdf)/libexec/asdf.sh"
-add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
-add_or_update_asdf_plugin "nodejs" "https://github.com/asdf-vm/asdf-nodejs.git"
-
-install_asdf_language() {
-  local language="$1"
-  local version
-  version="$(asdf list-all "$language" | grep -v "[a-z]" | tail -1)"
-
-  if ! asdf list "$language" | grep -Fq "$version"; then
-    asdf install "$language" "$version"
-    asdf global "$language" "$version"
-  fi
+config_git() {
+  fancy_echo "Globally ignoring .DS_Store files"
+  echo .DS_Store >> ~/.gitignore_global
+  git config --global core.excludesfile ~/.gitignore_global
+  git config --global init.defaultBranch main
 }
 
-fancy_echo "Installing latest Ruby ..."
-install_asdf_language "ruby"
-gem update --system
-number_of_cores=$(sysctl -n hw.ncpu)
-bundle config --global jobs $((number_of_cores - 1))
+install() {
+  pre_setup
+  install_homebrew
 
-fancy_echo "Installing latest Node ..."
-install_asdf_language "nodejs"
+  append_general_dependencies
 
-if [ -f "$HOME/.laptop.local" ]; then
-  fancy_echo "Running your customizations from ~/.laptop.local ..."
-  # shellcheck disable=SC1091
-  . "$HOME/.laptop.local"
-fi
+  append_web_dependencies
+  
+  install_dependencies
+
+  install_laptop_local
+
+  brew cleanup
+}
+
+# Check for Xcode Devtools and wait for them to be installed before continuing
+xcode-select -p 2>/dev/null
+return_code=$?
+
+while [ $return_code -eq 2 ]
+do
+  fancy_echo "\033[1;31mApple's Xcode Developer Tools are not installed!\033[0m"
+  fancy_echo "\033[1;31mPlease install them through the dialog box before continuing with running this installation script.\033[0m"
+  fancy_echo "Many of the tools used in this script will not work without the Xcode developer tools"
+  fancy_echo "Opening 'Install Command Line Developer Tools'"
+  xcode-select --install 1>/dev/null
+  fancy_echo "Press enter to try again once Xcode developer tools are installed"
+  read input
+  xcode-select -p
+  return_code=$?
+done
+
+# Run
+install
+
+config_zsh
+
+config_git
+
+fancy_echo "Installation successful"
