@@ -247,6 +247,57 @@ config_git() {
   git config --global init.defaultBranch main
 }
 
+config_vscode_extensions() {
+  # Misc
+  code --install-extension streetsidesoftware.code-spell-checker
+  code --install-extension donjayamanne.githistory
+  code --install-extension k--kato.intellij-idea-keybindings
+  code --install-extension ms-vsliveshare.vsliveshare
+  code --install-extension ms-vscode.makefile-tools
+  code --install-extension bengreenier.vscode-node-readme
+  code --install-extension christian-kohler.path-intellisense
+  code --install-extension ms-vscode-remote.remote-ssh
+  code --install-extension ms-vscode-remote.remote-ssh-edit
+  code --install-extension ms-vscode.remote-explorer
+  code --install-extension simonsiefke.svg-preview
+  code --install-extension rangav.vscode-thunder-client
+  code --install-extension ChakrounAnas.turbo-console-log
+  code --install-extension chrmarti.regex
+  code --install-extension shd101wyy.markdown-preview-enhanced
+  code --install-extension SonarSource.sonarlint-vscode
+  code --install-extension wk-j.vscode-httpie
+  
+  # Database
+  code --install-extension cweijan.vscode-database-client2
+  
+  # Infra
+  code --install-extension ms-azuretools.vscode-docker
+  code --install-extension hashicorp.terraform
+  
+  # .NET
+  code --install-extension ms-dotnettools.csharp
+  code --install-extension formulahendry.dotnet-test-explorer
+  code --install-extension davidpetersmke.mstestsnippets
+  
+  #Themes
+  code --install-extension equinusocio.vsc-material-theme
+  code --install-extension pkief.material-icon-theme
+  code --install-extension emmanuelbeziat.vscode-great-icons
+  
+  # Web
+  code --install-extension mgmcdermott.vscode-language-babel
+  code --install-extension mikestead.dotenv
+  code --install-extension dbaeumer.vscode-eslint
+  code --install-extension heybourn.headwind
+  code --install-extension bradlc.vscode-tailwindcss
+  code --install-extension chrisbibby.hide-node-modules
+  code --install-extension firsttris.vscode-jest-runner
+  code --install-extension christian-kohler.npm-intellisense
+  code --install-extension esbenp.prettier-vscode
+  code --install-extension formulahendry.auto-rename-tag
+  code --install-extension ms-vscode.vscode-typescript-next
+}
+
 install() {
   pre_setup
   install_homebrew
@@ -285,5 +336,7 @@ install
 config_zsh
 
 config_git
+
+config_vscode_extensions
 
 fancy_echo "Installation successful"
