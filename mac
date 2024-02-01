@@ -140,12 +140,6 @@ zsh_config_homebrew() {
   append_to_zshrc "eval \"\$($HOMEBREW_PREFIX/bin/brew shellenv)\""
 }
 
-setup_postgres() {
-  pg_ctl -D "$HOMEBREW_PREFIX/var/postgresql@15" start
-  "$HOMEBREW_PREFIX/opt/postgresql@15/bin/createuser" -s postgres
-  pg_ctl -D "$HOMEBREW_PREFIX/var/postgresql@15" stop
-}
-
 append_general_dependencies() {
   fancy_echo "Appending general dependencies to Brewfile"
 
@@ -180,19 +174,6 @@ append_general_dependencies() {
     brew "libyaml" # should come after openssl
     brew "coreutils"
 EOF
-
-  if [ "$ARCH" != "arm64" ]; then
-    append_general_intel_dependencies
-  fi
-}
-
-append_general_intel_dependencies() {
-  fancy_echo "Appending web's dependencies to Brewfile"
-
-  tee -a "$HOME/.Brewfile" <<-EOF
-    # General apps
-    cask "keybase" unless File.directory?("/Applications/Keybase.app")
-EOF
 }
 
 append_web_dependencies() {
@@ -205,9 +186,6 @@ append_web_dependencies() {
     # Devops
     cask "docker"
     brew "awscli"
-
-    # Databases
-    brew "postgresql@15", restart_service: true
 
     # Others
     brew "nvm"
@@ -222,12 +200,6 @@ install_dependencies() {
 
   fancy_echo "Installing dependencies"
   brew bundle --global --verbose --no-upgrade
-
-  if [[ "$(which postgres)" =~ "postgres not found" ]]; then
-    setup_postgres
-  else
-    fancy_echo "postgres already installed, skipping setup"
-  fi
 
   fancy_echo "Installed dependencies"
 }
