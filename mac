@@ -180,16 +180,24 @@ append_web_dependencies() {
   fancy_echo "Appending web's dependencies to Brewfile"
 
   tee -a "$HOME/.Brewfile" <<-EOF
+    # Java SDK
+    # brew tap homebrew/cask-versions && brew install --cask homebrew/cask-versions/adoptopenjdk8
+    # brew install openjdk@17
+
     # Languages
     brew "node"
 
     # Devops
-    cask "docker"
+    brew "colima"
+    brew "docker-compose"
+    brew "docker-credential-helper"
     brew "awscli"
+    brew "ansible"
 
     # Others
     brew "nvm"
     brew "yarn"
+    brew "httpie"
     cask "jetbrains-toolbox"
 EOF
 }
